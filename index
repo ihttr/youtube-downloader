@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --card-bg: #fff;
+            --primary: #6c757d;
+            --secondary: #5a6268;
+        }
+
+        .dark-mode {
+            --bg-color: #2c3e50;
+            --text-color: #ecf0f1;
+            --card-bg: #34495e;
+            --primary: #7f8c8d;
+            --secondary: #95a5a6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--secondary);
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .video-info {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .thumbnail {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .quality-options {
+            margin-top: 15px;
+        }
+
+        .quality-option {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .quality-option:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌓</button>
+    <div class="container">
+        <div class="card">
+            <h1>YouTube Video Downloader</h1>
+            <div class="form-group">
+                <label for="video-url">YouTube Video URL:</label>
+                <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
+            </div>
+            <button onclick="fetchVideoInfo()">Get Video Info</button>
+        </div>
+
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Fetching video information...</p>
+        </div>
+
+        <div class="card video-info" id="video-info">
+            <h2 id="video-title"></h2>
+            <img class="thumbnail" id="video-thumbnail" src="" alt="Video thumbnail">
+            <div class="quality-options" id="quality-options">
+                <!-- Quality options will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for dark mode preference
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+
+        async function fetchVideoInfo() {
+            const videoUrl = document.getElementById('video-url').value;
+            if (!videoUrl) {
+                alert('Please enter a YouTube video URL');
+                return;
+            }
+
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('video-info').style.display = 'none';
+
+            try {
+                const response = await fetch('/get_video_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: videoUrl })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch video info');
+                }
+
+                const data = await response.json();
+                displayVideoInfo(data);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error fetching video info: ' + error.message);
+            } finally {
+                document.querySelector('.loading').style.display = 'none';
+            }
+        }
+
+        function displayVideoInfo(data) {
+            document.getElementById('video-title').textContent = data.title;
+            document.getElementById('video-thumbnail').src = data.thumbnail;
+
+            const qualityOptions = document.getElementById('quality-options');
+            qualityOptions.innerHTML = '';
+
+            data.formats.forEach(format => {
+                const option = document.createElement('div');
+                option.className = 'quality-option';
+                option.onclick = () => downloadVideo(format.itag, format.qualityLabel);
+
+                const label = document.createElement('span');
+                label.textContent = `${format.qualityLabel} (${format.mimeType.split(';')[0]})`;
+
+                const size = document.createElement('span');
+                size.textContent = format.fileSize ? `Size: ${format.fileSize}` : 'Size: Unknown';
+
+                option.appendChild(label);
+                option.appendChild(size);
+                qualityOptions.appendChild(option);
+            });
+
+            document.getElementById('video-info').style.display = 'block';
+        }
+
+        function downloadVideo(itag, qualityLabel) {
+            const videoUrl = document.getElementById('video-url').value;
+            window.open(`/download?url=${encodeURIComponent(videoUrl)}&itag=${itag}&quality=${encodeURIComponent(qualityLabel)}`, '_blank');
+        }
+    </script>
+</body>
+</html>
